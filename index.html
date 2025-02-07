@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepLink Revealer</title>
+    <style>
+        :root {
+            --bg-light: #ffffff;
+            --text-light: #1a1a1a;
+            --primary-light: #3498db;
+            --surface-light: #f5f5f5;
+            --danger-light: #e74c3c;
+            --success-light: #2ecc71;
+            --nav-light: #ffffff;
+            --footer-light: #f5f5f5;
+            
+            --bg-dark: #1a1a1a;
+            --text-dark: #ffffff;
+            --primary-dark: #3498db;
+            --surface-dark: #2d2d2d;
+            --danger-dark: #c0392b;
+            --success-dark: #27ae60;
+            --nav-dark: #2d2d2d;
+            --footer-dark: #2d2d2d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-light);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body.dark-mode {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            padding: 2rem;
+            background-color: var(--surface-light);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+        }
+
+        .dark-mode .container {
+            background-color: var(--surface-dark);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .dark-mode input {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        input:focus {
+            border-color: var(--primary-light);
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            background-color: var(--primary-light);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .result.success {
+            background-color: var(--success-light);
+            color: white;
+            display: block;
+        }
+
+        .result.error {
+            background-color: var(--danger-light);
+            color: white;
+            display: block;
+        }
+
+        .dark-mode .result.success {
+            background-color: var(--success-dark);
+        }
+
+        .dark-mode .result.error {
+            background-color: var(--danger-dark);
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            background: none;
+            border: 2px solid currentColor;
+            color: inherit;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-light);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            background-color: var(--nav-light);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+        }
+
+        .dark-mode .navbar {
+            background-color: var(--nav-dark);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: inherit;
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+
+        .logo svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: inherit;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-light);
+        }
+
+        /* Main Content Styles */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+
+        /* Footer Styles */
+        .footer {
+            background-color: var(--footer-light);
+            padding: 2rem;
+            margin-top: auto;
+            transition: background-color 0.3s;
+        }
+
+        .dark-mode .footer {
+            background-color: var(--footer-dark);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .footer-links a {
+            text-decoration: none;
+            color: inherit;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-light);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-content, .footer-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .nav-links, .footer-links {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="#" class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                DeepLink Revealer
+            </a>
+            <ul class="nav-links">
+                <li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Tools</a></li>
+                <li><a href="#">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <button class="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+        
+        <div class="container">
+            <h1>DeepLink Revealer</h1>
+            
+            <div class="input-group">
+                <input 
+                    type="url" 
+                    id="urlInput" 
+                    placeholder="Enter shortened URL (e.g., bit.ly/...)"
+                    aria-label="Enter shortened URL"
+                >
+                <button id="revealBtn">Reveal</button>
+            </div>
+            
+            <div class="loader" id="loader"></div>
+            <div class="result" id="result"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 DeepLink Revealer. All rights reserved.</p>
+            <ul class="footer-links">
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Terms of Service</a></li>
+                <li><a href="#">Documentation</a></li>
+                <li><a href="#">API</a></li>
+            </ul>
+        </div>
+    </footer>
+
+    <script>
+        // Dark mode toggle
+        const themeToggle = document.querySelector('.theme-toggle');
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeToggle.textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('darkMode', isDark);
+        }
+
+        // Initialize theme
+        const savedTheme = localStorage.getItem('darkMode');
+        setTheme(savedTheme === null ? prefersDarkScheme.matches : savedTheme === 'true');
+
+        themeToggle.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // URL processing
+        const urlInput = document.getElementById('urlInput');
+        const revealBtn = document.getElementById('revealBtn');
+        const loader = document.getElementById('loader');
+        const result = document.getElementById('result');
+
+        const SHORTENER_PATTERNS = [
+            /bit\.ly/,
+            /tinyurl\.com/,
+            /t\.co/,
+            /ow\.ly/,
+            /is\.gd/,
+            /buff\.ly/,
+            /tiny\.cc/,
+            /shorturl\.at/
+        ];
+
+        function isValidShortUrl(url) {
+            try {
+                new URL(url);
+                return SHORTENER_PATTERNS.some(pattern => pattern.test(url.toLowerCase()));
+            } catch {
+                return false;
+            }
+        }
+
+        function checkSecurity(url) {
+            const suspiciousPatterns = [
+                /phish/i,
+                /hack/i,
+                /malware/i,
+                /virus/i,
+                /spam/i,
+                /scam/i
+            ];
+
+            let score = 0;
+            suspiciousPatterns.forEach(pattern => {
+                if (pattern.test(url)) score += 1;
+            });
+
+            return {
+                isSuspicious: score > 0,
+                score: score
+            };
+        }
+
+        async function revealUrl(shortUrl) {
+            try {
+                const response = await fetch(shortUrl, {
+                    method: 'HEAD',
+                    redirect: 'follow'
+                });
+                
+                return response.url;
+            } catch (error) {
+                throw new Error('Failed to resolve URL');
+            }
+        }
+
+        async function handleReveal() {
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                showError('Please enter a URL');
+                return;
+            }
+
+            if (!isValidShortUrl(url)) {
+                showError('Please enter a valid shortened URL');
+                return;
+            }
+
+            try {
+                loader.style.display = 'block';
+                result.style.display = 'none';
+                revealBtn.disabled = true;
+
+                const resolvedUrl = await revealUrl(url);
+                const securityCheck = checkSecurity(resolvedUrl);
+
+                if (securityCheck.isSuspicious) {
+                    showError(`⚠️ Warning: This URL appears suspicious (Risk score: ${securityCheck.score}/6)`);
+                } else {
+                    showSuccess(`
+                        Original URL: ${resolvedUrl}
+                        Security check: ✅ Passed
+                    `);
+                }
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                loader.style.display = 'none';
+                revealBtn.disabled = false;
+            }
+        }
+
+        function showSuccess(message) {
+            result.textContent = message;
+            result.className = 'result success';
+        }
+
+        function showError(message) {
+            result.textContent = message;
+            result.className = 'result error';
+        }
+
+        revealBtn.addEventListener('click', handleReveal);
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleReveal();
+        });
+    </script>
+</body>
+</html>
